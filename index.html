@@ -1,0 +1,883 @@
+<!-- ... existing code ... -->
+    <title>HealthPulse — Трекер Здоровья</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        .animate-pop {
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .animate-pop:active {
+            transform: scale(0.95);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 font-sans antialiased flex flex-col justify-between">
+
+    <!-- Navbar Header -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
+                    <i class="fa-solid font-bold fa-heart-pulse text-xl"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                    HealthPulse
+                </span>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <span id="current-date" class="text-sm font-medium text-slate-500 hidden sm:inline-block">
+                    <!-- Date inserted by JS -->
+                </span>
+                <button onclick="resetDayData()" title="Сбросить дневной прогресс" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow space-y-8">
+        
+        <!-- Welcome Banner -->
+        <div class="p-6 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg relative overflow-hidden">
+            <div class="relative z-10">
+                <h1 class="text-2xl sm:text-3xl font-bold mb-2">Привет! 👋🏻</h1>
+                <p class="text-blue-100 max-w-xl text-sm sm:text-base">
+                    Отслеживайте параметры тела, нормы КБЖУ, питание, воду и физическую активность в одном месте.
+                </p>
+            </div>
+            <div class="absolute -right-6 -bottom-10 opacity-10 text-9xl select-none pointer-events-none">
+                <i class="fa-solid fa-weight-scale"></i>
+            </div>
+        </div>
+
+        <!-- SECTION: BODY PARAMETERS & BMI CALCULATOR -->
+        <div class="glass-card rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                    <i class="fa-solid fa-calculator text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg">Параметры тела и расчет КБЖУ</h2>
+                    <p class="text-xs text-slate-500">Укажите параметры для расчёта норм ИМТ, калорий и БЖУ по формуле Миффлина-Сан Жеора</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Form Inputs -->
+                <div class="space-y-4 lg:col-span-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Вес (кг)</label>
+                            <input type="number" id="profile-weight" value="70" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Рост (см)</label>
+                            <input type="number" id="profile-height" value="175" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Возраст (лет)</label>
+                            <input type="number" id="profile-age" value="25" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Пол</label>
+                            <select id="profile-gender" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                                <option value="male">Мужской</option>
+                                <option value="female">Женский</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Уровень активности</label>
+                            <select id="profile-activity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                                <option value="1.2">Сидячий (минимум движений)</option>
+                                <option value="1.375">Умеренный (тренировки 1-3 р/нед)</option>
+                                <option value="1.55">Активный (тренировки 3-5 р/нед)</option>
+                                <option value="1.725">Очень активный (спорт каждый день)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Основная цель</label>
+                            <select id="profile-goal" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                                <option value="lose">Сбросить вес (-15% калорий)</option>
+                                <option value="maintain" selected>Поддерживать вес</option>
+                                <option value="gain">Набрать массу (+15% калорий)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="calculateProfileNorms()" class="w-full animate-pop bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors shadow-md shadow-orange-500/20">
+                        Рассчитать индивидуальные нормы
+                    </button>
+                </div>
+
+                <!-- BMI & Summary Display -->
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-5 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Индекс массы тела (ИМТ)</span>
+                        <div class="flex items-baseline space-x-3 mt-1">
+                            <span id="bmi-value" class="text-4xl font-extrabold text-orange-400">22.9</span>
+                            <span id="bmi-status" class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-medium">Норма</span>
+                        </div>
+                        <p id="bmi-description" class="text-xs text-slate-300 mt-2">Ваш вес находится в пределах здоровой нормы.</p>
+                    </div>
+
+                    <div class="border-t border-slate-700 pt-4 mt-4 space-y-1.5 text-xs text-slate-300">
+                        <div class="flex justify-between">
+                            <span>Цель по калориям:</span>
+                            <span id="calc-calories" class="font-bold text-white">2150 ккал</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Белки / Жиры / Угл:</span>
+                            <span id="calc-macros" class="font-bold text-white">134г / 71г / 241г</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Норма воды:</span>
+                            <span id="calc-water" class="font-bold text-white">2400 мл</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: NUTRITION & MACROS TRACKER -->
+        <div class="glass-card rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <i class="fa-solid fa-utensils text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-slate-800 text-lg">Дневник питания и КБЖУ</h2>
+                    <p class="text-xs text-slate-500">Учитывайте съеденные продукты и контролируйте баланс макронутриентов</p>
+                </div>
+            </div>
+
+            <!-- Macros Progress Overview Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <!-- Calories -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-semibold text-slate-600">Калории</span>
+                        <span id="cal-percent" class="text-xs font-bold text-amber-600">0%</span>
+                    </div>
+                    <div class="text-lg font-bold text-slate-800">
+                        <span id="cal-consumed">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="cal-target">2150</span> ккал</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                        <div id="cal-bar" class="bg-amber-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Protein -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-semibold text-slate-600">Белки</span>
+                        <span id="protein-percent" class="text-xs font-bold text-rose-600">0%</span>
+                    </div>
+                    <div class="text-lg font-bold text-slate-800">
+                        <span id="protein-consumed">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="protein-target">134</span> г</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                        <div id="protein-bar" class="bg-rose-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Fats -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-semibold text-slate-600">Жиры</span>
+                        <span id="fat-percent" class="text-xs font-bold text-yellow-600">0%</span>
+                    </div>
+                    <div class="text-lg font-bold text-slate-800">
+                        <span id="fat-consumed">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="fat-target">71</span> г</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                        <div id="fat-bar" class="bg-yellow-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Carbs -->
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-semibold text-slate-600">Углеводы</span>
+                        <span id="carbs-percent" class="text-xs font-bold text-sky-600">0%</span>
+                    </div>
+                    <div class="text-lg font-bold text-slate-800">
+                        <span id="carbs-consumed">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="carbs-target">241</span> г</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full mt-2 overflow-hidden">
+                        <div id="carbs-bar" class="bg-sky-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food Form Input -->
+            <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 mb-6">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Добавить приём пищи</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                    <div class="sm:col-span-2">
+                        <input type="text" id="food-name" placeholder="Название (например, Овсянка с бананом)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="number" id="food-calories" placeholder="Калории (ккал)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="number" id="food-protein" placeholder="Белки (г)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="number" id="food-fat" placeholder="Жиры (г)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-3">
+                    <div>
+                        <input type="number" id="food-carbs" placeholder="Углеводы (г)" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div class="sm:col-span-4">
+                        <button onclick="addFoodItem()" class="w-full animate-pop bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 rounded-xl text-sm transition-colors">
+                            <i class="fa-solid fa-plus mr-1"></i> Добавить в дневник
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food Items Log List -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Список съеденного за сегодня</h3>
+                <div id="food-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Food items injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid: Water, Steps, Sleep -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- 1. WATER TRACKER CARD -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                                <i class="fa-solid fa-glass-water text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-semibold text-slate-800">Вода</h2>
+                                <p class="text-xs text-slate-500">Цель: <span id="water-goal-val">2400</span> мл</p>
+                            </div>
+                        </div>
+                        <span id="water-percent" class="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full">0%</span>
+                    </div>
+
+                    <!-- Counter -->
+                    <div class="my-6 text-center">
+                        <span id="water-current" class="text-4xl font-extrabold text-slate-900">0</span>
+                        <span class="text-slate-500 font-medium"> / <span id="water-goal-text">2400</span> мл</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
+                        <div id="water-bar" class="bg-blue-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="addWater(250)" class="animate-pop bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-2 rounded-xl text-xs sm:text-sm transition-colors border border-blue-200">
+                        +250 мл
+                    </button>
+                    <button onclick="addWater(500)" class="animate-pop bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium py-2 rounded-xl text-xs sm:text-sm transition-colors border border-blue-200">
+                        +500 мл
+                    </button>
+                    <button onclick="resetWater()" class="animate-pop bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2 rounded-xl text-xs sm:text-sm transition-colors">
+                        Сброс
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. STEPS TRACKER CARD -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i class="fa-solid fa-shoe-prints text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-semibold text-slate-800">Шаги</h2>
+                                <p class="text-xs text-slate-500">Цель: <span id="steps-goal-val">10000</span></p>
+                            </div>
+                        </div>
+                        <span id="steps-percent" class="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full">0%</span>
+                    </div>
+
+                    <!-- Counter -->
+                    <div class="my-6 text-center">
+                        <span id="steps-current" class="text-4xl font-extrabold text-slate-900">0</span>
+                        <span class="text-slate-500 font-medium"> / <span id="steps-goal-text">10000</span></span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
+                        <div id="steps-bar" class="bg-emerald-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <div class="flex items-center space-x-2">
+                    <input type="number" id="steps-input" placeholder="+ Шаги" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <button onclick="addSteps()" class="animate-pop bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-4 py-2 rounded-xl text-sm transition-colors">
+                        Добавить
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. SLEEP TRACKER CARD -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                <i class="fa-solid fa-moon text-lg"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-semibold text-slate-800">Сон</h2>
+                                <p class="text-xs text-slate-500">Рекомендуется: 8 ч</p>
+                            </div>
+                        </div>
+                        <span id="sleep-status" class="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full">Нет данных</span>
+                    </div>
+
+                    <!-- Counter -->
+                    <div class="my-6 text-center">
+                        <span id="sleep-current" class="text-4xl font-extrabold text-slate-900">0</span>
+                        <span class="text-slate-500 font-medium"> часов</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
+                        <div id="sleep-bar" class="bg-indigo-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <div class="flex items-center space-x-2">
+                    <input type="number" step="0.5" id="sleep-input" placeholder="Часы (напр. 7.5)" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onclick="setSleep()" class="animate-pop bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition-colors">
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Mood & Journal Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Mood Selector Card -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <i class="fa-solid fa-face-smile text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-slate-800">Настроение сегодня</h2>
+                        <p class="text-xs text-slate-500">Как вы себя чувствуете?</p>
+                    </div>
+                </div>
+
+                <!-- Emoji Grid -->
+                <div class="grid grid-cols-5 gap-2 my-6">
+                    <button onclick="selectMood('😁', 'Отлично')" class="p-3 rounded-xl border border-slate-100 hover:bg-amber-50 hover:border-amber-200 transition-all text-2xl text-center">😁</button>
+                    <button onclick="selectMood('🙂', 'Хорошо')" class="p-3 rounded-xl border border-slate-100 hover:bg-amber-50 hover:border-amber-200 transition-all text-2xl text-center">🙂</button>
+                    <button onclick="selectMood('😐', 'Нормально')" class="p-3 rounded-xl border border-slate-100 hover:bg-amber-50 hover:border-amber-200 transition-all text-2xl text-center">😐</button>
+                    <button onclick="selectMood('😔', 'Грустно')" class="p-3 rounded-xl border border-slate-100 hover:bg-amber-50 hover:border-amber-200 transition-all text-2xl text-center">😔</button>
+                    <button onclick="selectMood('😫', 'Устал')" class="p-3 rounded-xl border border-slate-100 hover:bg-amber-50 hover:border-amber-200 transition-all text-2xl text-center">😫</button>
+                </div>
+
+                <div id="selected-mood-display" class="p-3 bg-slate-50 rounded-xl text-center text-sm font-medium text-slate-600">
+                    Настроение еще не выбрано
+                </div>
+            </div>
+
+            <!-- Health Journal Card -->
+            <div class="lg:col-span-2 glass-card rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <i class="fa-solid fa-book-medical text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-slate-800">Заметка / Дневник самочувствия</h2>
+                            <p class="text-xs text-slate-500">Запишите ваши мысли или симптомы</p>
+                        </div>
+                    </div>
+
+                    <textarea id="journal-input" rows="3" placeholder="Запишите что-нибудь важное за сегодня..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none mb-4"></textarea>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span id="journal-status" class="text-xs text-slate-400"></span>
+                    <button onclick="saveJournal()" class="animate-pop bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-xl text-sm transition-colors">
+                        Сохранить заметку
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Deployment Instructions Banner -->
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center">
+                <i class="fa-brands fa-github text-slate-900 mr-2"></i> Инструкция по деплою (GitHub & Vercel)
+            </h3>
+            <p class="text-sm text-slate-600 mb-4">Как выложить этот сайт в сеть бесплатно за пару минут:</p>
+            
+            <ol class="list-decimal list-inside text-sm text-slate-600 space-y-2">
+                <li>Сохраните код в файл <strong>index.html</strong>.</li>
+                <li>Создайте новый репозиторий на <a href="https://github.com" target="_blank" class="text-blue-600 underline">GitHub</a> и загрузите туда ваш <code class="bg-slate-100 px-1 py-0.5 rounded">index.html</code>.</li>
+                <li>Зайдите на <a href="https://vercel.com" target="_blank" class="text-blue-600 underline">Vercel.com</a>, зарегистрируйтесь через GitHub.</li>
+                <li>Нажмите <strong>"Add New"</strong> -> <strong>"Project"</strong>, выберите ваш репозиторий и нажмите <strong>"Deploy"</strong>.</li>
+                <li>Готово! Vercel предоставит вам бесплатную красивую ссылку на рабочий веб-сайт.</li>
+            </ol>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-400">
+            HealthPulse &copy; Все данные сохраняются локально в вашем браузере.
+        </div>
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 text-sm flex items-center space-x-2 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-message">Успешно обновлено!</span>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Default Constants
+        const STEPS_GOAL = 10000;
+        const SLEEP_GOAL = 8;
+
+        // Main State
+        let state = {
+            profile: {
+                weight: 70,
+                height: 175,
+                age: 25,
+                gender: 'male',
+                activity: 1.375,
+                goal: 'maintain'
+            },
+            targets: {
+                calories: 2150,
+                protein: 134,
+                fat: 71,
+                carbs: 241,
+                water: 2400
+            },
+            foodList: [],
+            water: 0,
+            steps: 0,
+            sleep: 0,
+            mood: { emoji: '', label: '' },
+            journal: ''
+        };
+
+        // Initialize App
+        window.onload = function() {
+            displayCurrentDate();
+            loadState();
+            calculateProfileNorms(false); // Calculate without toast on boot
+            updateUI();
+        };
+
+        function displayCurrentDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const today = new Date();
+            document.getElementById('current-date').innerText = today.toLocaleDateString('ru-RU', options);
+        }
+
+        // Local Storage Sync
+        function loadState() {
+            const savedState = localStorage.getItem('healthPulseData_v2');
+            if (savedState) {
+                try {
+                    state = Object.assign({}, state, JSON.parse(savedState));
+                    
+                    // Populate Profile Inputs
+                    document.getElementById('profile-weight').value = state.profile.weight || 70;
+                    document.getElementById('profile-height').value = state.profile.height || 175;
+                    document.getElementById('profile-age').value = state.profile.age || 25;
+                    document.getElementById('profile-gender').value = state.profile.gender || 'male';
+                    document.getElementById('profile-activity').value = state.profile.activity || 1.375;
+                    document.getElementById('profile-goal').value = state.profile.goal || 'maintain';
+                } catch (e) {
+                    console.error("Ошибка загрузки данных", e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('healthPulseData_v2', JSON.stringify(state));
+            updateUI();
+        }
+
+        // Calculate Profile Norms & BMI (Mifflin-St Jeor Equation)
+        function calculateProfileNorms(showNotification = true) {
+            const weight = parseFloat(document.getElementById('profile-weight').value) || 70;
+            const height = parseFloat(document.getElementById('profile-height').value) || 175;
+            const age = parseInt(document.getElementById('profile-age').value) || 25;
+            const gender = document.getElementById('profile-gender').value;
+            const activity = parseFloat(document.getElementById('profile-activity').value);
+            const goal = document.getElementById('profile-goal').value;
+
+            // Save profile
+            state.profile = { weight, height, age, gender, activity, goal };
+
+            // 1. BMI Calculation
+            const heightInMeters = height / 100;
+            const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+            
+            document.getElementById('bmi-value').innerText = bmi;
+            const bmiStatus = document.getElementById('bmi-status');
+            const bmiDesc = document.getElementById('bmi-description');
+
+            if (bmi < 18.5) {
+                bmiStatus.innerText = 'Недостаток веса';
+                bmiStatus.className = 'text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-medium';
+                bmiDesc.innerText = 'Рекомендуется повысить калорийность рациона.';
+            } else if (bmi < 25) {
+                bmiStatus.innerText = 'Норма';
+                bmiStatus.className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-medium';
+                bmiDesc.innerText = 'Ваш вес находится в здоровом диапазоне.';
+            } else if (bmi < 30) {
+                bmiStatus.innerText = 'Избыток веса';
+                bmiStatus.className = 'text-xs px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-300 font-medium';
+                bmiDesc.innerText = 'Сбалансируйте питание и добавьте активности.';
+            } else {
+                bmiStatus.innerText = 'Ожирение';
+                bmiStatus.className = 'text-xs px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 font-medium';
+                bmiDesc.innerText = 'Рекомендуется плавный дефицит калорий и спорт.';
+            }
+
+            // 2. BMR & TDEE Calculation
+            let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+            bmr = gender === 'male' ? bmr + 5 : bmr - 161;
+
+            let tdee = bmr * activity;
+
+            // Apply Goal Multiplier
+            if (goal === 'lose') tdee *= 0.85; // -15%
+            if (goal === 'gain') tdee *= 1.15; // +15%
+
+            const targetCalories = Math.round(tdee);
+            const targetProtein = Math.round((targetCalories * 0.25) / 4); // 25% calories
+            const targetFat = Math.round((targetCalories * 0.30) / 9);     // 30% calories
+            const targetCarbs = Math.round((targetCalories * 0.45) / 4);   // 45% calories
+            const targetWater = Math.round(weight * 35);                   // 35ml per kg
+
+            state.targets = {
+                calories: targetCalories,
+                protein: targetProtein,
+                fat: targetFat,
+                carbs: targetCarbs,
+                water: targetWater
+            };
+
+            // Update Summary Display
+            document.getElementById('calc-calories').innerText = `${targetCalories} ккал`;
+            document.getElementById('calc-macros').innerText = `${targetProtein}г / ${targetFat}г / ${targetCarbs}г`;
+            document.getElementById('calc-water').innerText = `${targetWater} мл`;
+
+            saveState();
+
+            if (showNotification) {
+                showToast('Нормы успешно перерассчитаны!');
+            }
+        }
+
+        // Food & Macros Logic
+        function addFoodItem() {
+            const name = document.getElementById('food-name').value.trim();
+            const calories = parseInt(document.getElementById('food-calories').value) || 0;
+            const protein = parseInt(document.getElementById('food-protein').value) || 0;
+            const fat = parseInt(document.getElementById('food-fat').value) || 0;
+            const carbs = parseInt(document.getElementById('food-carbs').value) || 0;
+
+            if (!name) {
+                alert('Пожалуйста, введите название блюда.');
+                return;
+            }
+
+            const item = {
+                id: Date.now(),
+                name,
+                calories,
+                protein,
+                fat,
+                carbs
+            };
+
+            state.foodList.push(item);
+
+            // Reset inputs
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-calories').value = '';
+            document.getElementById('food-protein').value = '';
+            document.getElementById('food-fat').value = '';
+            document.getElementById('food-carbs').value = '';
+
+            saveState();
+            showToast(`Добавлено: ${name}`);
+        }
+
+        function removeFoodItem(id) {
+            state.foodList = state.foodList.filter(item => item.id !== id);
+            saveState();
+            showToast('Запись удалена');
+        }
+
+        // UI Update Function
+        function updateUI() {
+            // 1. Water
+            const waterCurrent = state.water || 0;
+            const waterGoal = state.targets.water || 2400;
+            const waterPercent = Math.min(Math.round((waterCurrent / waterGoal) * 100), 100);
+            
+            document.getElementById('water-current').innerText = waterCurrent;
+            document.getElementById('water-goal-text').innerText = waterGoal;
+            document.getElementById('water-goal-val').innerText = waterGoal;
+            document.getElementById('water-bar').style.width = `${waterPercent}%`;
+            document.getElementById('water-percent').innerText = `${waterPercent}%`;
+
+            // 2. Steps
+            const stepsCurrent = state.steps || 0;
+            const stepsPercent = Math.min(Math.round((stepsCurrent / STEPS_GOAL) * 100), 100);
+            document.getElementById('steps-current').innerText = stepsCurrent;
+            document.getElementById('steps-bar').style.width = `${stepsPercent}%`;
+            document.getElementById('steps-percent').innerText = `${stepsPercent}%`;
+
+            // 3. Sleep
+            const sleepCurrent = state.sleep || 0;
+            const sleepPercent = Math.min(Math.round((sleepCurrent / SLEEP_GOAL) * 100), 100);
+            document.getElementById('sleep-current').innerText = sleepCurrent;
+            document.getElementById('sleep-bar').style.width = `${sleepPercent}%`;
+            
+            const sleepStatus = document.getElementById('sleep-status');
+            if (sleepCurrent === 0) {
+                sleepStatus.innerText = 'Нет данных';
+                sleepStatus.className = 'text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-500 rounded-full';
+            } else if (sleepCurrent >= 7) {
+                sleepStatus.innerText = 'Отличный сон';
+                sleepStatus.className = 'text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full';
+            } else {
+                sleepStatus.innerText = 'Недостаточно сна';
+                sleepStatus.className = 'text-xs font-bold px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full';
+            }
+
+            // 4. Food & Macros Aggregates
+            let totalCal = 0, totalProt = 0, totalFat = 0, totalCarbs = 0;
+            state.foodList.forEach(item => {
+                totalCal += item.calories;
+                totalProt += item.protein;
+                totalFat += item.fat;
+                totalCarbs += item.carbs;
+            });
+
+            // Set Totals
+            document.getElementById('cal-consumed').innerText = totalCal;
+            document.getElementById('cal-target').innerText = state.targets.calories;
+            const calPercent = Math.min(Math.round((totalCal / state.targets.calories) * 100), 100);
+            document.getElementById('cal-bar').style.width = `${calPercent}%`;
+            document.getElementById('cal-percent').innerText = `${calPercent}%`;
+
+            document.getElementById('protein-consumed').innerText = totalProt;
+            document.getElementById('protein-target').innerText = state.targets.protein;
+            const protPercent = Math.min(Math.round((totalProt / state.targets.protein) * 100), 100);
+            document.getElementById('protein-bar').style.width = `${protPercent}%`;
+            document.getElementById('protein-percent').innerText = `${protPercent}%`;
+
+            document.getElementById('fat-consumed').innerText = totalFat;
+            document.getElementById('fat-target').innerText = state.targets.fat;
+            const fatPercent = Math.min(Math.round((totalFat / state.targets.fat) * 100), 100);
+            document.getElementById('fat-bar').style.width = `${fatPercent}%`;
+            document.getElementById('fat-percent').innerText = `${fatPercent}%`;
+
+            document.getElementById('carbs-consumed').innerText = totalCarbs;
+            document.getElementById('carbs-target').innerText = state.targets.carbs;
+            const carbsPercent = Math.min(Math.round((totalCarbs / state.targets.carbs) * 100), 100);
+            document.getElementById('carbs-bar').style.width = `${carbsPercent}%`;
+            document.getElementById('carbs-percent').innerText = `${carbsPercent}%`;
+
+            // Render Food List
+            const foodListContainer = document.getElementById('food-list');
+            if (state.foodList.length === 0) {
+                foodListContainer.innerHTML = `<p class="text-xs text-slate-400 italic py-2">Вы пока ничего не добавили сегодня.</p>`;
+            } else {
+                foodListContainer.innerHTML = state.foodList.map(item => `
+                    <div class="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm text-xs">
+                        <div>
+                            <span class="font-bold text-slate-800">${item.name}</span>
+                            <div class="text-slate-400 mt-0.5">
+                                ${item.calories} ккал | Б: ${item.protein}г | Ж: ${item.fat}г | У: ${item.carbs}г
+                            </div>
+                        </div>
+                        <button onclick="removeFoodItem(${item.id})" class="text-slate-300 hover:text-rose-500 transition-colors p-1">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // 5. Mood Display
+            const moodDisplay = document.getElementById('selected-mood-display');
+            if (state.mood && state.mood.emoji) {
+                moodDisplay.innerText = `Настроение: ${state.mood.emoji} ${state.mood.label}`;
+                moodDisplay.className = 'p-3 bg-amber-50 border border-amber-200 rounded-xl text-center text-sm font-semibold text-amber-800';
+            } else {
+                moodDisplay.innerText = 'Настроение еще не выбрано';
+                moodDisplay.className = 'p-3 bg-slate-50 rounded-xl text-center text-sm font-medium text-slate-600';
+            }
+
+            // 6. Journal
+            if (state.journal) {
+                document.getElementById('journal-input').value = state.journal;
+            }
+        }
+
+        // Actions: Water
+        function addWater(amount) {
+            state.water = (state.water || 0) + amount;
+            saveState();
+            showToast(`Добавлено +${amount} мл воды`);
+        }
+
+        function resetWater() {
+            state.water = 0;
+            saveState();
+            showToast('Счетчик воды сброшен');
+        }
+
+        // Actions: Steps
+        function addSteps() {
+            const input = document.getElementById('steps-input');
+            const val = parseInt(input.value);
+            if (val && val > 0) {
+                state.steps = (state.steps || 0) + val;
+                input.value = '';
+                saveState();
+                showToast(`Добавлено ${val} шагов`);
+            }
+        }
+
+        // Actions: Sleep
+        function setSleep() {
+            const input = document.getElementById('sleep-input');
+            const val = parseFloat(input.value);
+            if (val && val >= 0) {
+                state.sleep = val;
+                input.value = '';
+                saveState();
+                showToast(`Часы сна сохранены: ${val} ч.`);
+            }
+        }
+
+        // Actions: Mood
+        function selectMood(emoji, label) {
+            state.mood = { emoji, label };
+            saveState();
+            showToast(`Настроение отмечено: ${emoji}`);
+        }
+
+        // Actions: Journal
+        function saveJournal() {
+            const text = document.getElementById('journal-input').value;
+            state.journal = text;
+            saveState();
+            
+            const status = document.getElementById('journal-status');
+            status.innerText = 'Сохранено!';
+            setTimeout(() => { status.innerText = ''; }, 3000);
+            
+            showToast('Заметка сохранена');
+        }
+
+        // Reset Day Progress
+        function resetDayData() {
+            if (confirm("Сбросить съеденную еду, воду, шаги, сон и заметку за сегодняшний день? (Ваш профиль сохранится)")) {
+                state.water = 0;
+                state.steps = 0;
+                state.sleep = 0;
+                state.foodList = [];
+                state.mood = { emoji: '', label: '' };
+                state.journal = '';
+                document.getElementById('journal-input').value = '';
+                saveState();
+                showToast('Данные за день сброшены');
+            }
+        }
+
+        // Toast Helper
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
